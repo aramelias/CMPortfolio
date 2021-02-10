@@ -1,5 +1,5 @@
 # CMPortfolio
-Computational Musicology
+Computational Musicology portfolio
 
 # Analysis: Ayreon
 Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017 that are known for their unique sound. It may be worthwhile to compare these albums to one another to see how the band has developed over time.
