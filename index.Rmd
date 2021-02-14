@@ -39,25 +39,20 @@ ayreon <- subset(ayreon, select = -c(playlist_id, playlist_name, playlist_img, p
 # Clean up some album names
 ayreon$track.album.name[ayreon$track.album.name == "The Final Experiment (Special Edition)"] <- "The Final Experiment"
 ayreon$track.album.name[ayreon$track.album.name == "Universal Migrator Pt.1 & 2"] <- "Universal Migrator"
+ayreon$mode_name <- ifelse(ayreon$mode_name == "minor", "Minor", "Major")
 
 ayreon
-```
-
-# Creating a theme
-```{r}
-my_theme = theme()
 ```
 
 # Plotting
 This plot is an overview of Ayreon's six albums.
 ```{r}
-ayreon %>%
-  mutate(mode_name = ifelse(mode_name == "minor", "Minor", "Major")) %>%
-  ggplot(aes(x = energy, y = valence, size = loudness, color = mode_name)) +
-  geom_point(aes(alpha = 0.5)) +
+ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) +
+  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
   scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
-  scale_size_continuous(trans = "exp", guide = "none") +
+  scale_size_continuous(trans = "exp", guide = ) +
   facet_wrap(~track.album.name) +
-  labs(x = "Energy", y = "Valence", size = "Loudness", color = "Mode")
+  theme_linedraw() +
+  labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode")
 ```
