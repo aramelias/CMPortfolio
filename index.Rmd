@@ -1,7 +1,7 @@
 ---
 title: "Computational Musicology Portfolio"
 author: "Aram Elias"
-date: "2/10/2021"
+date: "Feb 14, 2021"
 output: html_document
 ---
 
@@ -22,14 +22,42 @@ With most songs being over five minutes in length and having distinct musical se
 A limitation of this corpus would be a lack of other material to compare it with; however, with the band citing older bands such as Pink Floyd as inspiration, looking into similarities there might also be a good avenue for research.
 
 ```{r}
-# Creating the dataset
+# Retrieve data
 ayreon <- get_playlist_audio_features("", "3O1z9gRNz9DiB9wujbgLiV")
+
+# Remove stray song
 ayreon <- subset(ayreon, track.album.name != "Timeline")
 
+# Remove unnecessary columns (mostly empty or irrelevant to the music itself)
+ayreon <- subset(ayreon, select = -c(playlist_id, playlist_name, playlist_img, playlist_owner_name, playlist_owner_id,
+                  added_at, primary_color, added_by.href, added_by.id, added_by.type, added_by.uri, added_by.external_urls.spotify,
+                  track.artists, track.available_markets, track.disc_number, track.episode, track.explicit,
+                  is_local, track.is_local, track.preview_url, track.track, track.type, video_thumbnail.url, mode,
+                  track.album.album_type, track.album.artists, track.album.available_markets, track.album.href,
+                  track.album.id, track.album.images, track.album.release_date_precision, track.album.type))
 
-ayreon %>% ggplot(aes(x = energy)) + geom_histogram(binwidth = 0.1) +
- facet_wrap(~track.album.name)
+# Clean up some album names
+ayreon$track.album.name[ayreon$track.album.name == "The Final Experiment (Special Edition)"] <- "The Final Experiment"
+ayreon$track.album.name[ayreon$track.album.name == "Universal Migrator Pt.1 & 2"] <- "Universal Migrator"
+
+ayreon
 ```
 
-# Overview
+# Creating a theme
+```{r}
+my_theme = theme()
+```
+
+# Plotting
 This plot is an overview of Ayreon's six albums.
+```{r}
+ayreon %>%
+  mutate(mode_name = ifelse(mode_name == "minor", "Minor", "Major")) %>%
+  ggplot(aes(x = energy, y = valence, size = loudness, color = mode_name)) +
+  geom_point(aes(alpha = 0.5)) +
+  scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
+  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
+  scale_size_continuous(trans = "exp", guide = "none") +
+  facet_wrap(~track.album.name) +
+  labs(x = "Energy", y = "Valence", size = "Loudness", color = "Mode")
+```
