@@ -5,8 +5,11 @@ date: "2/10/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(spotifyr)
+library(ggplot2)
 ```
 
 # Analysis: Ayreon
@@ -18,22 +21,15 @@ With most songs being over five minutes in length and having distinct musical se
 
 A limitation of this corpus would be a lack of other material to compare it with; however, with the band citing older bands such as Pink Floyd as inspiration, looking into similarities there might also be a good avenue for research.
 
-## R Markdown
+```{r}
+# Creating the dataset
+ayreon <- get_playlist_audio_features("", "3O1z9gRNz9DiB9wujbgLiV")
+ayreon <- subset(ayreon, track.album.name != "Timeline")
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+ayreon %>% ggplot(aes(x = energy)) + geom_histogram(binwidth = 0.1) +
+ facet_wrap(~track.album.name)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Overview
+This plot is an overview of Ayreon's six albums.
