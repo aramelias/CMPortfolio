@@ -51,7 +51,7 @@ ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) 
   geom_point(shape = 21, color = "#000000", alpha = 0.5) +
   scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
-  scale_size_continuous(trans = "exp", guide = ) +
+  scale_size_continuous(trans = "exp", guide = "none") +
   facet_wrap(~track.album.name) +
   theme_linedraw() +
   labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode")
