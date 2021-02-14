@@ -61,3 +61,4 @@ ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) 
   theme_linedraw() +
   labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode")
 ```
+This plot shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones.
