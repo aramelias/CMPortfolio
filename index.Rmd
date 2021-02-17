@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(spotifyr)
+library(compmus)
 library(ggplot2)
 ```
 
@@ -50,7 +51,7 @@ ayreon
 ```
 
 # Plotting
-This plot is an overview of Ayreon's six albums, in chronological order.
+This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, while the size of the circle represents loudness and the color represents the mode.
 ```{r}
 ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) +
   geom_point(shape = 21, color = "#000000", alpha = 0.5) +
@@ -58,7 +59,10 @@ ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) 
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_size_continuous(trans = "exp", guide = "none") +
   facet_wrap(~album_factor) +
-  theme_linedraw() +
-  labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode")
+  labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
+  ggtitle("Energy and valence of Ayreon albums") +
+  theme_linedraw()
 ```
+
 This plot shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones.
+
