@@ -2,23 +2,28 @@
 title: "Computational Musicology Portfolio"
 author: "Aram Elias"
 date: "Feb 14, 2021"
-output: html_document
+output:
+  flexdashboard::flex_dashboard:
+    storyboard: true
 ---
 
-```{r}
-knitr::opts_chunk$set(echo = TRUE)
+```{r include = FALSE}
+knitr::opts_chunk$set(include = FALSE)
+knitr::opts_chunk$set(error = FALSE)
 library(tidyverse)
 library(spotifyr)
 library(compmus)
 library(ggplot2)
+library(plotly)
 ```
 
-# Analysis: Ayreon
-Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017 that are known for their unique sound. It may be worthwhile to compare these albums to one another to see how the band has developed over time.
+### Introduction
+
+Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. A human listener will be able to notice differences right away, with newer albums being described as "richer" or more complex.
 
 Some songs in different albums reference one another, and for these it could also be interesting to see how much they have in common musically speaking. Some other songs are considered outliers due to not sounding the same as the rest of the album, or even having more in common with other albums to the human ear.
 
-With most songs being over five minutes in length and having distinct musical segments with complex rhythms, and each album consisting of about fifteen songs, a large amount of data on this band is available on Spotify.
+With most songs being over five minutes in length and having distinct musical segments with complex rhythms, and each album consisting of about fifteen songs, a large amount of data on this band is available on Spotify. As stated before, tracks on more recent albums are generally seen as more complex, and it may be of interest to see if this complexity affects other features of their songs that can be traced back to a trend across albums.
 
 A limitation of this corpus would be a lack of other material to compare it with; however, with the band citing older bands such as Pink Floyd as inspiration, looking into similarities there might also be a good avenue for research.
 
@@ -46,14 +51,22 @@ ayreon$mode_name <- ifelse(ayreon$mode_name == "minor", "Minor", "Major")
 ayreon$album_factor = factor(ayreon$track.album.name, levels = c("The Final Experiment", "Into The Electric Castle",
                                                                  "Universal Migrator", "The Human Equation",
                                                                  "01011001", "The Source"))
-
-ayreon
 ```
 
-# Plotting
-This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, while the size of the circle represents loudness and the color represents the mode.
 ```{r}
-ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) +
+# Creating a custom theme
+theme_ayreon = function(){
+  theme_linedraw() %+replace%
+    theme(
+      panel.grid = element_line(color = "gray")
+    )
+}
+```
+
+### Over time, Ayreon's albums have become more consistent in terms of valence and energy.
+
+```{r include=TRUE, echo=FALSE}
+ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) +
   geom_point(shape = 21, color = "#000000", alpha = 0.5) +
   scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
@@ -61,8 +74,24 @@ ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) 
   facet_wrap(~album_factor) +
   labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
   ggtitle("Energy and valence of Ayreon albums") +
-  theme_linedraw()
+  theme_ayreon()
+)
 ```
 
-This plot shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones.
+***
 
+This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, while the size of the circle represents loudness and the color represents the mode.
+
+It clearly shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones. Most importantly, however, tracks have become more clustered in the lower-right region instead of being more spread-out.
+
+### Length and Chroma
+
+**This visualization works in RStudio, but I cannot yet get it to function properly in HTML/flexdashboard format.**
+
+```{r}
+
+```
+
+***
+
+While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song. This visualization shows how certain parts of the track *Isis And Osiris*, from the *Into the Electric Castle* album, are repeated.
