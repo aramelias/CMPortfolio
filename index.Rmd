@@ -87,11 +87,21 @@ It clearly shows that, especially through time, the band has gravitated towards 
 
 ### Length and Chroma
 
-**Due to an error in R that keeps me from accessing the data frame despite successfully retrieving the analysis, I have not yet been able to process this track's chroma features.**
+**Due to an error in R that keeps me from accessing the data frame despite successfully retrieving the analysis, I have not yet been able to fully process this track's chroma features.**
 
 ```{r include=TRUE, echo=FALSE}
-osiris <- get_track_audio_analysis("39VbILtU4hPAb7zDxdiU4z")[6]
-osiris
+osiris <- get_track_audio_analysis("39VbILtU4hPAb7zDxdiU4z")[6]$segments
+chroma <- osiris$pitches
+
+melody <- c()
+for (i in seq(1, length(chroma), by=1)) {
+  melody[[i]] <- which.max(chroma[[i]])
+}
+
+ggplot(NULL, aes(x = seq(1, length(chroma)), y = melody)) +
+  geom_point() +
+  labs(x = "Time", y = "Chroma") +
+  theme_ayreon()
 ```
 
 ***
