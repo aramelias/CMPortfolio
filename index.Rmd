@@ -107,3 +107,5 @@ ggplot(NULL, aes(x = seq(1, length(chroma)), y = melody)) +
 ***
 
 While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can be seen in the track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear.
+
+This plot shows the most dominant chroma of each beat in the song.
