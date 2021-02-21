@@ -79,7 +79,7 @@ ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mod
 
 ***
 
-This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, while the size of the circle represents loudness and the color represents the mode.
+This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, with each circle representing a track from the album in the title. The size of a circle represents the track's loudness and the color represents the mode.
 
 It clearly shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones. Most importantly, however, tracks have become more clustered in the lower-right region instead of being more spread-out.
 
