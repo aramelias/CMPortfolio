@@ -18,6 +18,7 @@ library(plotly)
 
 ### Introduction
 
+## Introduction
 Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. A human listener will be able to notice differences right away, with newer albums being described as "richer" or more complex.
 
 Some songs in different albums reference one another, and for these it could also be interesting to see how much they have in common musically speaking. Some other songs are considered outliers due to not sounding the same as the rest of the album, or even having more in common with other albums to the human ear.
