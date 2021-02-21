@@ -94,4 +94,4 @@ It clearly shows that, especially through time, the band has gravitated towards 
 
 ***
 
-While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song. This visualization shows how certain parts of the track *Isis And Osiris*, from the *Into the Electric Castle* album, are repeated.
+While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song. Using techniques similar to the [Eternal Jukebox](https://eternalbox.dev/jukebox_index.html), this visualization shows how certain parts of the track *Isis And Osiris*, from the *Into the Electric Castle* album, are repeated. This song was chosen based on the fact that many listeners agree it to be most representative of their work.
