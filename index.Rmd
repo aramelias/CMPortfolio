@@ -87,12 +87,13 @@ It clearly shows that, especially through time, the band has gravitated towards 
 
 ### Length and Chroma
 
-**This visualization works in RStudio, but I cannot yet get it to function properly in HTML/flexdashboard format.**
+**Due to an error in R that keeps me from accessing the data frame despite successfully retrieving the analysis, I have not yet been able to process this track's chroma features.**
 
-```{r}
-
+```{r include=TRUE, echo=FALSE}
+osiris <- get_track_audio_analysis("39VbILtU4hPAb7zDxdiU4z")[6]
+osiris
 ```
 
 ***
 
-While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song. Using techniques similar to the [Eternal Jukebox](https://eternalbox.dev/jukebox_index.html), this visualization shows how certain parts of the track *Isis And Osiris*, from the *Into the Electric Castle* album, are repeated. This song was chosen based on the fact that many listeners agree it to be most representative of their work.
+While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can be seen in the track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear.
