@@ -6,7 +6,7 @@ output:
     storyboard: true
 ---
 
-```{r include = FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(include = FALSE)
 knitr::opts_chunk$set(error = FALSE)
 library(tidyverse)
@@ -16,9 +16,66 @@ library(ggplot2)
 library(plotly)
 ```
 
-### Introduction
+```{r}
+# Creating a custom theme
+theme_ayreon = function(){
+  theme_linedraw() %+replace%
+    theme(
+      panel.grid = element_line(color = "gray")
+    )
+}
+```
 
-**Introduction**
+### Track Structure
+
+```{r include=TRUE, echo=FALSE}
+osiris <- 
+  get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>%
+  unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  ) %>%
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"
+      )
+  )
+
+osiris %>%
+  compmus_self_similarity(pitches, "cosine") %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_ayreon() +
+  labs(title = "Isis And Osiris", x = "", y = "")
+```
+
+***
+
+While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can most clearly be seen in the eleven-minute track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear. This clear structure is in no small part due to the fact that some parts (such as the "chorus" parts of the different segments) are repeated almost identically. This is clearly visible in the block-like structure, which also reveal that the first and last segments of the song are quite similar -- this is intentional, as at its *highest* level, the track follows an **ABCA** structure. Each **A**, **B** and **C** part can then be divided into subparts that repeat within the confines of that part.
+
+This plot shows the most dominant chroma of each beat in the song.
+
+### Introduction and Corpus
+
+![Logo](https://iconape.com/wp-content/files/gt/296369/svg/ayreon-logo-logo-icon-png-svg.png){width=50%}
 
 Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. A human listener will be able to notice differences right away, with newer albums being described as "richer" or more complex.
 
@@ -54,28 +111,19 @@ ayreon$album_factor = factor(ayreon$track.album.name, levels = c("The Final Expe
                                                                  "01011001", "The Source"))
 ```
 
-```{r}
-# Creating a custom theme
-theme_ayreon = function(){
-  theme_linedraw() %+replace%
-    theme(
-      panel.grid = element_line(color = "gray")
-    )
-}
-```
-
 ### Over time, Ayreon's albums have become more consistent in terms of valence and energy.
 
 ```{r include=TRUE, echo=FALSE}
-ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name)) +
+ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name, name = track.name)) +
   geom_point(shape = 21, color = "#000000", alpha = 0.5) +
   scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_size_continuous(trans = "exp", guide = "none") +
   facet_wrap(~album_factor) +
-  labs(x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
-  ggtitle("Energy and valence of Ayreon albums") +
-  theme_ayreon()
+  labs(title = "Energy and valence of Ayreon albums", caption = "Data source: Spotify",
+       x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
+  theme_ayreon(),
+  tooltip = c("name", "energy", "valence", "loudness", "mode_name")
 )
 ```
 
@@ -84,34 +132,3 @@ ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mod
 This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, with each circle representing a track from the album in the title. The size of a circle represents the track's loudness and the color represents the mode.
 
 It clearly shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones. Most importantly, however, tracks have become more clustered in the lower-right region instead of being more spread-out.
-
-### Length and Chroma
-
-**A better visualization, which shows more than just the most "dominant" chroma, is still in the works. I am struggling.**
-
-```{r include=TRUE, echo=FALSE}
-osiris <- get_track_audio_analysis("39VbILtU4hPAb7zDxdiU4z")[6]$segments
-chroma <- osiris$pitches
-
-melody <- c()
-for (i in seq(1, length(chroma), by=1)) {
-  melody[[i]] <- which.max(chroma[[i]])
-}
-
-ggplot(NULL, aes(x = seq(1, length(chroma)), y = melody)) +
-  geom_point() +
-  labs(x = "Beat", y = "Chroma") +
-  theme_ayreon()
-
-#ggplot(NULL, aes(x = rep(seq(1, length(chroma)), 12), y = rep(seq(1, 12), length(chroma)))) +
-#  geom_tile(fill = chroma) +
-#  geom_rug()
-#  labs(x = "Time", y = "Chroma") +
-#  theme_ayreon()
-```
-
-***
-
-While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can be seen in the track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear.
-
-This plot shows the most dominant chroma of each beat in the song.
