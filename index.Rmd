@@ -14,6 +14,7 @@ library(spotifyr)
 library(compmus)
 library(ggplot2)
 library(plotly)
+library(gridExtra)
 ```
 
 ```{r}
@@ -26,9 +27,9 @@ theme_ayreon = function(){
 }
 ```
 
-### Track Structure
+### The structure of Ayreon's songs has changed over time, becoming both simpler and more varied.
 
-```{r include=TRUE, echo=FALSE}
+```{r}
 osiris <- 
   get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
   compmus_align(bars, segments) %>%
@@ -48,10 +49,11 @@ osiris <-
         method = "rms", norm = "euclidean"
       )
   )
+```
 
-osiris %>%
-  compmus_self_similarity(pitches, "cosine") %>% 
-  ggplot(
+```{r}
+osiris_pitches <-
+  ggplot(compmus_self_similarity(osiris, pitches, "cosine"),
     aes(
       x = xstart + xduration / 2,
       width = xduration,
@@ -64,18 +66,108 @@ osiris %>%
   coord_fixed() +
   scale_fill_viridis_c(guide = "none") +
   theme_ayreon() +
-  labs(title = "Isis And Osiris", x = "", y = "")
+  labs(title = "Isis And Osiris", subtitle="Chroma similarity", x = "", y = "")
+
+osiris_pitches
+```
+```{r}
+osiris_timbre <-
+  ggplot(compmus_self_similarity(osiris, timbre, "cosine"),
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_ayreon() +
+  labs(title = "Isis And Osiris", subtitle="Timbre similarity", x = "", y = "")
+
+osiris_timbre
+```
+
+```{r}
+breakdown <- 
+  get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>%
+  unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  ) %>%
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"
+      )
+  )
+```
+
+```{r}
+breakdown_pitches <-
+  ggplot(compmus_self_similarity(breakdown, pitches, "cosine"),
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_ayreon() +
+  labs(title = "The Day That The World Breaks Down", subtitle="Chroma similarity", x = "", y = "")
+
+breakdown_pitches
+```
+
+```{r}
+breakdown_timbre <-
+  ggplot(compmus_self_similarity(breakdown, timbre, "cosine"),
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_ayreon() +
+  labs(title = "The Day That The World Breaks Down", subtitle="Timbre similarity", x = "", y = "")
+
+breakdown_timbre
+```
+
+```{r include=TRUE, echo=FALSE}
+grid.arrange(osiris_pitches, osiris_timbre, breakdown_pitches, breakdown_timbre)
 ```
 
 ***
 
-While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can most clearly be seen in the eleven-minute track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear. This clear structure is in no small part due to the fact that some parts (such as the "chorus" parts of the different segments) are repeated almost identically. This is clearly visible in the block-like structure, which also reveal that the first and last segments of the song are quite similar -- this is intentional, as at its *highest* level, the track follows an **ABCA** structure. Each **A**, **B** and **C** part can then be divided into subparts that repeat within the confines of that part.
+While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can most clearly be seen in the eleven-minute track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear. To the left are two self-similarity matrices (SSMs) for this track, which compare each bar to all other bars in the song; one in terms of chroma (melody) features, the other in term of timbre (instrument) features. 
 
-This plot shows the most dominant chroma of each beat in the song.
+The song's clear structure is in no small part due to the fact that some parts (such as the "chorus" parts of the different segments) are repeated almost identically, which shows as solid blue blocks in the SSM. This is clearly visible in the block-like structure, which also reveal that the first and last segments of the song are quite similar -- this is intentional, as at its *highest* level, the track follows an **ABCA** structure. Each **A**, **B** and **C** part can then be divided into subparts that repeat within the confines of that part. The timbre-based SSM shows that despite variations in melody, the song's timbre is highly consistent.
+
+Comparing this to *The Day that the World Breaks Down*, the first track of their newest album, *The Source*, it becomes clear that something has changed. There is a higher variation in both chroma and timbre, but the chroma structure also appears more regular, with a checkerboard-like pattern emerging in both SSMs for this song.
+
 
 ### Introduction and Corpus
 
-![Logo](https://iconape.com/wp-content/files/gt/296369/svg/ayreon-logo-logo-icon-png-svg.png){width=50%}
+<!-- ![Logo](https://iconape.com/wp-content/files/gt/296369/svg/ayreon-logo-logo-icon-png-svg.png){width=50%} -->
 
 Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. A human listener will be able to notice differences right away, with newer albums being described as "richer" or more complex.
 
