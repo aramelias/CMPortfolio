@@ -132,8 +132,7 @@ breakdown_plot
 ```
 
 ```{r include=TRUE, echo=FALSE}
-osiris_plot
-breakdown_plot
+grid.arrange(osiris_plot, breakdown_plot)
 ```
 
 ***
