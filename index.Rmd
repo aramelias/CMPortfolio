@@ -60,45 +60,6 @@ osiris <-
 ```
 
 ```{r}
-osiris_pitches <-
-  ggplot(compmus_self_similarity(osiris, pitches, "cosine"),
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) +
-  geom_tile() +
-  coord_fixed() +
-  scale_fill_viridis_c(guide = "none") +
-  theme_ayreon() +
-  labs(title = "Chroma Similarity", subtitle="Isis And Osiris", x = "", y = "")
-
-osiris_pitches
-```
-```{r}
-osiris_timbre <-
-  ggplot(compmus_self_similarity(osiris, timbre, "cosine"),
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) +
-  geom_tile() +
-  coord_fixed() +
-  scale_fill_viridis_c(guide = "none") +
-  theme_ayreon() +
-  labs(title="Timbre Similarity", subtitle="Isis And Osiris", x = "", y = "")
-
-osiris_timbre
-```
-
-```{r}
 breakdown <- 
   get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
   compmus_align(bars, segments) %>%
@@ -121,8 +82,12 @@ breakdown <-
 ```
 
 ```{r}
-breakdown_pitches <-
-  ggplot(compmus_self_similarity(breakdown, pitches, "cosine"),
+osiris_plot <- bind_rows(
+  mutate(compmus_self_similarity(osiris, pitches, "cosine"), type = "Chroma"),
+  mutate(compmus_self_similarity(osiris, timbre, "cosine"), type = "Timbre"),
+) %>%
+  mutate() %>% 
+  ggplot(
     aes(
       x = xstart + xduration / 2,
       width = xduration,
@@ -133,16 +98,21 @@ breakdown_pitches <-
   ) +
   geom_tile() +
   coord_fixed() +
+  facet_wrap(~type) +
   scale_fill_viridis_c(guide = "none") +
-  theme_ayreon() +
-  labs(title = "Chroma Similarity", subtitle="The Day That...", x = "", y = "")
+  theme_ayreon() + 
+  labs(title = "Isis And Osiris", x = "", y = "")
 
-breakdown_pitches
+osiris_plot
 ```
 
 ```{r}
-breakdown_timbre <-
-  ggplot(compmus_self_similarity(breakdown, timbre, "cosine"),
+breakdown_plot <- bind_rows(
+  mutate(compmus_self_similarity(breakdown, pitches, "cosine"), type = "Chroma"),
+  mutate(compmus_self_similarity(breakdown, timbre, "cosine"), type = "Timbre"),
+) %>%
+  mutate() %>% 
+  ggplot(
     aes(
       x = xstart + xduration / 2,
       width = xduration,
@@ -153,15 +123,17 @@ breakdown_timbre <-
   ) +
   geom_tile() +
   coord_fixed() +
+  facet_wrap(~type) +
   scale_fill_viridis_c(guide = "none") +
-  theme_ayreon() +
-  labs(title="Timbre Similarity", subtitle="The Day That...", x = "", y = "")
+  theme_ayreon() + 
+  labs(title = "The Day That The World Breaks Down", x = "", y = "")
 
-breakdown_timbre
+breakdown_plot
 ```
 
 ```{r include=TRUE, echo=FALSE}
-grid.arrange(osiris_pitches, osiris_timbre, breakdown_pitches, breakdown_timbre)
+osiris_plot
+breakdown_plot
 ```
 
 ***
