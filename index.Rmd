@@ -27,6 +27,14 @@ theme_ayreon = function(){
 }
 ```
 
+### New Page
+
+```{r}
+
+```
+
+***
+
 ### The structure of Ayreon's songs has changed over time, becoming both simpler and more varied.
 
 ```{r}
@@ -66,7 +74,7 @@ osiris_pitches <-
   coord_fixed() +
   scale_fill_viridis_c(guide = "none") +
   theme_ayreon() +
-  labs(title = "Isis And Osiris", subtitle="Chroma similarity", x = "", y = "")
+  labs(title = "Chroma Similarity", subtitle="Isis And Osiris", x = "", y = "")
 
 osiris_pitches
 ```
@@ -85,7 +93,7 @@ osiris_timbre <-
   coord_fixed() +
   scale_fill_viridis_c(guide = "none") +
   theme_ayreon() +
-  labs(title = "Isis And Osiris", subtitle="Timbre similarity", x = "", y = "")
+  labs(title="Timbre Similarity", subtitle="Isis And Osiris", x = "", y = "")
 
 osiris_timbre
 ```
@@ -127,7 +135,7 @@ breakdown_pitches <-
   coord_fixed() +
   scale_fill_viridis_c(guide = "none") +
   theme_ayreon() +
-  labs(title = "The Day That The World Breaks Down", subtitle="Chroma similarity", x = "", y = "")
+  labs(title = "Chroma Similarity", subtitle="The Day That...", x = "", y = "")
 
 breakdown_pitches
 ```
@@ -147,7 +155,7 @@ breakdown_timbre <-
   coord_fixed() +
   scale_fill_viridis_c(guide = "none") +
   theme_ayreon() +
-  labs(title = "The Day That The World Breaks Down", subtitle="Timbre similarity", x = "", y = "")
+  labs(title="Timbre Similarity", subtitle="The Day That...", x = "", y = "")
 
 breakdown_timbre
 ```
