@@ -432,7 +432,7 @@ twenty_five <-
 ```{r}
 twenty_five %>% 
   compmus_match_pitch_template(
-    key_templates,         # Change to chord_templates if descired
+    key_templates,         # Change to chord_templates if desired
     method = "euclidean",  # Try different distance metrics
     norm = "manhattan"     # Try different norms
   ) %>%
