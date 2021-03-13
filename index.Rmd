@@ -12,7 +12,6 @@ knitr::opts_chunk$set(error = FALSE)
 library(tidyverse)
 library(spotifyr)
 library(compmus)
-library(ggplot2)
 library(plotly)
 library(gridExtra)
 ```
@@ -55,42 +54,71 @@ ayreon$album_factor = factor(ayreon$track.album.name, levels = albums)
 ayreon
 ```
 
-### The previously mentioned change in structure also shows in other aspects.
+### Ayreon's songs have always featured modulations in tempo, but this degree of variation has only increased over time.
 
 ```{r}
-variations <- data.frame(album = albums)
+awareness_tempogram <- get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "The Awareness", x = "Time (s)", y = "Tempo (BPM)") +
+  theme_ayreon()
 
-for (album in albums) {
-  variations$sd_loud[variations$album == album] <- sd(ayreon$loudness[ayreon$track.album.name == album])
-  variations$sd_tempo[variations$album == album] <- sd(ayreon$tempo[ayreon$track.album.name == album])
-  variations$sd_duration[variations$album == album] <- sd(ayreon$track.duration_ms[ayreon$track.album.name == album])
-}
-
-variations
+awareness_tempogram
 ```
 
-```{r include=TRUE, echo=FALSE}
-#ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album)) +
-#  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
-#  theme_ayreon()
+```{r}
+osiris_tempogram <- get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "Isis And Osiris", x = "Time (s)", y = "Tempo (BPM)") +
+  theme_ayreon()
 
-ggplotly(ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album_factor)) +
-  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
-  scale_x_continuous(limits = c(0, 4), breaks = c(0, 2, 4), minor_breaks = NULL) +
-  scale_y_continuous(limits = c(0, 30), breaks = c(0, 15, 30), minor_breaks = NULL) +
-  #scale_size_continuous(trans = "log", guide = "none") +
-  labs(title = "Variance in loudness, tempo and duration of Ayreon tracks", caption = "Data source: Spotify",
-       x = "Loudness", y = "Tempo", size = "Duration", fill = "Album") +
-  theme_ayreon(),
-  tooltip = c("album", "sd_loud", "sd_tempo", "sd_duration")
-)
+osiris_tempogram
+```
+
+```{r}
+isolation_tempogram <- get_tidy_audio_analysis("52n7yFo3u09rzhewJLMa54") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "Day Two: Isolation", x = "Time (s)", y = "Tempo (BPM)") +
+  theme_ayreon()
+
+isolation_tempogram
+```
+
+```{r}
+shadows_tempogram <- get_tidy_audio_analysis("55Ywj4C9fUHoSqfWIdeBFd") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "Age Of Shadows/We Are Forever", x = "Time (s)", y = "Tempo (BPM)") +
+  theme_ayreon()
+
+shadows_tempogram
+```
+
+```{r}
+breakdown_tempogram <- get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "The Day That The World Breaks Down", x = "Time (s)", y = "Tempo (BPM)") +
+  theme_ayreon()
+
+breakdown_tempogram
 ```
 
 ***
 
-This plot shows the variance (standard deviation) of three factors in Ayreon's different albums. The higher the value, the more these factors differ between songs on said album.
-
-Surprisingly, one aspect in which the band's work has become *less* varied in newer albums, is loudness. This may have something to do with the fact that most of their newer songs also have more energy on average, as can be seen in the first visualization of this portfolio where tracks of newer albums are closer together on the horizontal axis. This would suggest a correlation between loudness and energy, which seems intuitive.
+The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as either a prologue or exposition, letting some characters introduce themselves.
 
 ### Introduction and Corpus
 
@@ -233,3 +261,40 @@ While many of Ayreon's songs have distinct parts, most of these are repeated thr
 The song's clear structure is in no small part due to the fact that some parts (such as the "chorus" parts of the different segments) are repeated almost identically, which shows as solid blue blocks in the SSM. This is clearly visible in the block-like structure, which also reveal that the first and last segments of the song are quite similar -- this is intentional, as at its *highest* level, the track follows an **ABCA** structure. Each **A**, **B** and **C** part can then be divided into subparts that repeat within the confines of that part. The timbre-based SSM shows that despite variations in melody, the song's timbre is highly consistent.
 
 Comparing this to *The Day that the World Breaks Down*, the first track of their newest album, *The Source*, it becomes clear that something has changed. There is a higher variation in both chroma and timbre, but the chroma structure also appears more regular, with a checkerboard-like pattern emerging in both SSMs for this song.
+
+### The previously mentioned change in structure also shows in other aspects.
+
+```{r}
+variations <- data.frame(album = albums)
+
+for (album in albums) {
+  variations$sd_loud[variations$album == album] <- sd(ayreon$loudness[ayreon$track.album.name == album])
+  variations$sd_tempo[variations$album == album] <- sd(ayreon$tempo[ayreon$track.album.name == album])
+  variations$sd_duration[variations$album == album] <- sd(ayreon$track.duration_ms[ayreon$track.album.name == album])
+}
+
+variations
+```
+
+```{r include=TRUE, echo=FALSE}
+#ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album)) +
+#  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
+#  theme_ayreon()
+
+ggplotly(ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album_factor)) +
+  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
+  scale_x_continuous(limits = c(0, 4), breaks = c(0, 2, 4), minor_breaks = NULL) +
+  scale_y_continuous(limits = c(0, 30), breaks = c(0, 15, 30), minor_breaks = NULL) +
+  #scale_size_continuous(trans = "log", guide = "none") +
+  labs(title = "Variance in loudness, tempo and duration of Ayreon tracks", caption = "Data source: Spotify",
+       x = "Loudness", y = "Tempo", size = "Duration", fill = "Album") +
+  theme_ayreon(),
+  tooltip = c("album", "sd_loud", "sd_tempo", "sd_duration")
+)
+```
+
+***
+
+This plot shows the variance (standard deviation) of three factors in Ayreon's different albums. The higher the value, the more these factors differ between songs on said album. The legend to the right lists the albums in chronological order.
+
+Surprisingly, one aspect in which the band's work has become *less* varied in newer albums, is loudness. This may have something to do with the fact that most of their newer songs also have more energy on average, as can be seen in the first visualization of this portfolio where tracks of newer albums are closer together on the horizontal axis. This would suggest a correlation between loudness and energy, which seems intuitive.
