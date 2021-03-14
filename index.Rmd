@@ -54,7 +54,7 @@ ayreon$album_factor = factor(ayreon$track.album.name, levels = albums)
 ayreon
 ```
 
-### Ayreon's songs have always featured modulations in tempo, but this degree of variation has only increased over time.
+### Ayreon's songs may have complex structures made up of multiple parts, but the tempo of each song remains fairly constant.
 
 ```{r}
 awareness_tempogram <- get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX") %>%
@@ -62,7 +62,7 @@ awareness_tempogram <- get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX") %>%
   ggplot(aes(x = time, y = bpm, fill = power)) +
   geom_raster() +
   scale_fill_viridis_c(guide = "none") +
-  labs(title = "The Awareness", x = "Time (s)", y = "Tempo (BPM)") +
+  labs(title = "The Awareness", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
   theme_ayreon()
 
 awareness_tempogram
@@ -74,7 +74,7 @@ osiris_tempogram <- get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
   ggplot(aes(x = time, y = bpm, fill = power)) +
   geom_raster() +
   scale_fill_viridis_c(guide = "none") +
-  labs(title = "Isis And Osiris", x = "Time (s)", y = "Tempo (BPM)") +
+  labs(title = "Isis And Osiris", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
   theme_ayreon()
 
 osiris_tempogram
@@ -86,7 +86,7 @@ isolation_tempogram <- get_tidy_audio_analysis("52n7yFo3u09rzhewJLMa54") %>%
   ggplot(aes(x = time, y = bpm, fill = power)) +
   geom_raster() +
   scale_fill_viridis_c(guide = "none") +
-  labs(title = "Day Two: Isolation", x = "Time (s)", y = "Tempo (BPM)") +
+  labs(title = "Day Two: Isolation", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
   theme_ayreon()
 
 isolation_tempogram
@@ -98,7 +98,7 @@ shadows_tempogram <- get_tidy_audio_analysis("55Ywj4C9fUHoSqfWIdeBFd") %>%
   ggplot(aes(x = time, y = bpm, fill = power)) +
   geom_raster() +
   scale_fill_viridis_c(guide = "none") +
-  labs(title = "Age Of Shadows/We Are Forever", x = "Time (s)", y = "Tempo (BPM)") +
+  labs(title = "Age Of Shadows/We Are Forever", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
   theme_ayreon()
 
 shadows_tempogram
@@ -110,15 +110,23 @@ breakdown_tempogram <- get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
   ggplot(aes(x = time, y = bpm, fill = power)) +
   geom_raster() +
   scale_fill_viridis_c(guide = "none") +
-  labs(title = "The Day That The World Breaks Down", x = "Time (s)", y = "Tempo (BPM)") +
+  labs(title = "The Day That The World Breaks Down", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
   theme_ayreon()
 
 breakdown_tempogram
 ```
 
+```{r include=TRUE, echo=FALSE}
+grid.arrange(awareness_tempogram, osiris_tempogram, isolation_tempogram, shadows_tempogram, breakdown_tempogram)
+```
+
 ***
 
-The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as either a prologue or exposition, letting some characters introduce themselves.
+The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. These tracks are *not* always the first track of their respective albums, such as in the case of *Day Two: Isolation* from the album *The Human Equation*. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as their true introduction or exposition, with some first tracks serving as prologues. These prologue tracks are either very short or consist mostly of speech, while the introductory tracks are some of the longest on the albums, which is why I chose to look at them in particular. Only the album *Universal Migrator* has a prologue without an introductory track following it, due to its differing structure.
+
+What is particularly interesting here, is that despite the complex structure of these songs, they follow a nearly constant tempo as evidenced by the bright green horizontal line in each tempogram. The other horizontal lines, spaced out evenly across the vertical axis, are the result of tempo harmonics. I chose to leave them in, as they don't distract from the bigger picture.
+
+The "muddled" parts of some songs, especially *The Awareness* and *The Day That The World Breaks Down*, correspond to parts of the song with less of a clear rhythm. In both cases, most instruments that appear in other parts of the song are absent, and if there are lyrics, they flow slowly and irregularly.
 
 ### Introduction and Corpus
 
