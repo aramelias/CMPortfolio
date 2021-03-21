@@ -11,9 +11,13 @@ knitr::opts_chunk$set(include = FALSE)
 knitr::opts_chunk$set(error = FALSE)
 library(tidyverse)
 library(spotifyr)
-library(compmus)
 library(plotly)
 library(gridExtra)
+library(tidymodels)
+library(ggdendro)
+library(heatmaply)
+library(compmus)
+library(ranger)
 ```
 
 ```{r}
@@ -28,11 +32,8 @@ theme_ayreon = function(){
 
 ```{r}
 # Retrieve data
-ayreon <- get_playlist_audio_features("", "3O1z9gRNz9DiB9wujbgLiV")
-ayreon <- subset(ayreon, track.album.name != "Timeline")
-
-# Remove unnecessary columns (mostly empty or irrelevant to the music itself)
-ayreon <- subset(ayreon, select = -c(playlist_id, playlist_name, playlist_img, playlist_owner_name, playlist_owner_id,
+ayreon <- get_playlist_audio_features("", "3O1z9gRNz9DiB9wujbgLiV") %>% subset(track.album.name != "Timeline") %>%
+    subset(select = -c(playlist_id, playlist_name, playlist_img, playlist_owner_name, playlist_owner_id,
                   added_at, primary_color, added_by.href, added_by.id, added_by.type, added_by.uri, added_by.external_urls.spotify,
                   track.artists, track.available_markets, track.disc_number, track.episode, track.explicit,
                   is_local, track.is_local, track.preview_url, track.track, track.type, video_thumbnail.url, mode,
@@ -49,96 +50,155 @@ albums <- c("The Final Experiment", "Into The Electric Castle", "Universal Migra
 
 # Put the albums in chronological order using a factor
 album_factor <- factor(albums, levels = albums)
-ayreon$album_factor = factor(ayreon$track.album.name, levels = albums)
+ayreon$album = factor(ayreon$track.album.name, levels = albums)
 
 ayreon
 ```
 
-### Ayreon's songs may have complex structures made up of multiple parts, but the tempo of each song remains fairly constant.
-
 ```{r}
-awareness_tempogram <- get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "The Awareness", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
+get_conf_mat <- function(fit) {
+  fit %>% collect_predictions() %>%
+    conf_mat(truth = .get_tune_outcome_names(fit), estimate = .pred_class)
+}
 
-awareness_tempogram
+get_pr <- function(fit) {
+  fit %>% 
+    conf_mat_resampled() %>% 
+    group_by(Prediction) %>% mutate(precision = Freq / sum(Freq)) %>% 
+    group_by(Truth) %>% mutate(recall = Freq / sum(Freq)) %>% 
+    ungroup() %>% filter(Prediction == Truth) %>% 
+    select(class = Prediction, precision, recall)
+}
 ```
-
-```{r}
-osiris_tempogram <- get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "Isis And Osiris", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-osiris_tempogram
-```
-
-```{r}
-isolation_tempogram <- get_tidy_audio_analysis("52n7yFo3u09rzhewJLMa54") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "Day Two: Isolation", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-isolation_tempogram
-```
-
-```{r}
-shadows_tempogram <- get_tidy_audio_analysis("55Ywj4C9fUHoSqfWIdeBFd") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "Age Of Shadows/We Are Forever", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-shadows_tempogram
-```
-
-```{r}
-breakdown_tempogram <- get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "The Day That The World Breaks Down", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-breakdown_tempogram
-```
-
-```{r include=TRUE, echo=FALSE}
-grid.arrange(awareness_tempogram, osiris_tempogram, isolation_tempogram, shadows_tempogram, breakdown_tempogram)
-```
-
-***
-
-The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. These tracks are *not* always the first track of their respective albums, such as in the case of *Day Two: Isolation* from the album *The Human Equation*. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as their true introduction or exposition, with some first tracks serving as prologues. These prologue tracks are either very short or consist mostly of speech, while the introductory tracks are some of the longest on the albums, which is why I chose to look at them in particular. Only the album *Universal Migrator* has a prologue without an introductory track following it, due to its differing structure.
-
-What is particularly interesting here, is that despite the complex structure of these songs, they follow a nearly constant tempo as evidenced by the bright green horizontal line in each tempogram. The other horizontal lines, spaced out evenly across the vertical axis, are the result of tempo harmonics. I chose to leave them in, as they don't distract from the bigger picture.
-
-The "muddled" parts of some songs, especially *The Awareness* and *The Day That The World Breaks Down*, correspond to parts of the song with less of a clear rhythm. In both cases, most instruments that appear in other parts of the song are absent, and if there are lyrics, they flow slowly and irregularly.
 
 ### Introduction and Corpus
 
 <!-- ![Logo](https://iconape.com/wp-content/files/gt/296369/svg/ayreon-logo-logo-icon-png-svg.png){width=50%} -->
 
-Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. A human listener will be able to notice differences right away, with newer albums being described as "richer" or more complex.
+Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. Most human listeners should be able to notice differences right away, with newer albums being described as "richer" or more complex. Although the band *has* released other albums besides these six, those consist of shorter tracks and are not considered "canon" to the storyline the other albums follow. For these reasons, I have decided to only focus on the six "core" albums.
 
 Some songs in different albums reference one another, and for these it could also be interesting to see how much they have in common musically speaking. Some other songs are considered outliers due to not sounding the same as the rest of the album, or even having more in common with other albums to the human ear.
 
 With most songs being over five minutes in length and having distinct musical segments with complex rhythms, and each album consisting of about fifteen songs, a large amount of data on this band is available on Spotify. As stated before, tracks on more recent albums are generally seen as more complex, and it may be of interest to see if this complexity affects other features of their songs that can be traced back to a trend across albums.
 
 A limitation of this corpus would be a lack of other material to compare it with; however, with the band citing older bands such as Pink Floyd as inspiration, looking into similarities there might also be a good avenue for research.
+
+### A random-forest classifier is surprisingly effective at classifying Ayreon's songs by album, with a few exceptions.
+
+```{r}
+ayreon_features <-
+  ayreon %>%
+  add_audio_analysis() %>% 
+  mutate(
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(
+        segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean",
+      )
+  ) %>%
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) %>%
+  mutate_at(vars(pitches, timbre), map, bind_rows) %>%
+  unnest(cols = c(pitches, timbre))
+```
+
+```{r}
+ayreon_recipe <-
+  recipe(
+    album ~
+      #danceability +
+      #energy +
+      #loudness +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      #liveness +
+      valence +
+      tempo +
+      #duration +
+      C + `C#|Db` + D + `D#|Eb` +
+      E + `F` + `F#|Gb` + G +
+      `G#|Ab` + A + `A#|Bb` + B +
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+    data = ayreon_features,          # Use the same name as the previous block.
+  ) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors())      # Converts to z-scores.
+  #step_range(all_predictors())    # Sets range to [0, 1].
+```
+
+```{r}
+ayreon_cv <- ayreon_features %>% vfold_cv(10)
+```
+
+```{r}
+knn_model <-
+  nearest_neighbor(neighbors = 5) %>%
+  set_mode("classification") %>% 
+  set_engine("kknn")
+
+ayreon_knn <- 
+  workflow() %>% 
+  add_recipe(ayreon_recipe) %>% 
+  add_model(knn_model) %>% 
+  fit_resamples(
+    ayreon_cv, 
+    control = control_resamples(save_pred = TRUE)
+  )
+```
+
+```{r}
+forest_model <-
+  rand_forest() %>%
+  set_mode("classification") %>% 
+  set_engine("ranger", importance = "impurity")
+
+ayreon_forest <- 
+  workflow() %>% 
+  add_recipe(ayreon_recipe) %>% 
+  add_model(forest_model) %>% 
+  fit_resamples(
+    ayreon_cv, 
+    control = control_resamples(save_pred = TRUE)
+  )
+```
+
+```{r}
+ayreon_knn %>% get_conf_mat() %>% autoplot(type = "heatmap")
+ayreon_forest %>% get_conf_mat() %>% autoplot(type = "heatmap")
+ayreon_knn %>% get_conf_mat() %>% autoplot(type = "mosaic")
+ayreon_forest %>% get_conf_mat() %>% autoplot(type = "mosaic")
+ayreon_knn %>% get_pr()
+ayreon_forest %>% get_pr()
+```
+```{r}
+pr_forest = get_pr(ayreon_forest)
+```
+
+```{r include=TRUE, echo=FALSE}
+confusion_plot <- ayreon_forest %>% get_conf_mat() %>% autoplot(type = "heatmap")
+confusion_plot +
+  scale_fill_viridis_c() +
+  labs(title = "Random Forest Classifier", caption = "Data source: Spotify") +
+  theme_ayreon() +
+  theme(axis.text.x = element_text(angle = 90), legend.position = "none")
+```
+
+***
+
+A random forest classifier model was trained on the entire body of features, resulting in the confusion matrix shown here. The numerical values and their corresponding colors represent how many tracks from a specific album (on the horizontal axis) were classified as each album (on the vertical axis). The diagonal running from the top left to the bottom right therefore represents *correct* classifications. On average, the model showed a precision of `r round(mean(pr_forest$precision), 1)`% and a recall of `r round(mean(pr_forest$recall), 1)`%.
+
+By disregarding the features of danceability, energy, loudness, liveness and duration, the model's performance was increased. In particular, roughly half the songs on *Into The Electric Castle* and the majority of songs on *Universal Migrator*, *The Human Equation* and *The Source* were labelled correctly, while the model performed far less effectively on *The Final Experiment* and *01011001*. Interestingly, the classifications for *The Final Experiment* were almost evenly distributed across albums, while tracks from *01011001* were most often misclassified as tracks from *Universal Migrator*.
+
+The fact that the confusion matrix also shows smooth color gradients on the vertical axis, suggests that consecutive albums have more in common with one another than albums with more time in between. The only real exception to this is *The Source*, whose low number of misclassifications on both the horizontal and vertical axis suggests that it is more distinct from the rest of Ayreon's work.
 
 ### Over time, Ayreon's albums have become more consistent in terms of valence and energy.
 
@@ -148,7 +208,7 @@ ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mod
   scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
   scale_size_continuous(trans = "exp", guide = "none") +
-  facet_wrap(~album_factor) +
+  facet_wrap(~album) +
   labs(title = "Energy and valence of Ayreon albums", caption = "Data source: Spotify",
        x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
   theme_ayreon(),
@@ -303,6 +363,80 @@ ggplotly(ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, f
 
 ***
 
-This plot shows the variance (standard deviation) of three factors in Ayreon's different albums. The higher the value, the more these factors differ between songs on said album. The legend to the right lists the albums in chronological order.
+This plot shows the variance (standard deviation) of three factors in Ayreon's different albums. The higher the value, the more these factors differ between songs on said album. The legend to the right lists the albums in chronological order, with *The Final Experiment* being the oldest album and *The Source* being the most recent.
 
 Surprisingly, one aspect in which the band's work has become *less* varied in newer albums, is loudness. This may have something to do with the fact that most of their newer songs also have more energy on average, as can be seen in the first visualization of this portfolio where tracks of newer albums are closer together on the horizontal axis. This would suggest a correlation between loudness and energy, which seems intuitive.
+
+### Ayreon's songs may have complex structures made up of multiple parts, but the tempo of each song remains fairly constant.
+
+```{r}
+awareness_tempogram <- get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "The Awareness", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
+  theme_ayreon()
+
+awareness_tempogram
+```
+
+```{r}
+osiris_tempogram <- get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "Isis And Osiris", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
+  theme_ayreon()
+
+osiris_tempogram
+```
+
+```{r}
+isolation_tempogram <- get_tidy_audio_analysis("52n7yFo3u09rzhewJLMa54") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "Day Two: Isolation", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
+  theme_ayreon()
+
+isolation_tempogram
+```
+
+```{r}
+shadows_tempogram <- get_tidy_audio_analysis("55Ywj4C9fUHoSqfWIdeBFd") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "Age Of Shadows/We Are Forever", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
+  theme_ayreon()
+
+shadows_tempogram
+```
+
+```{r}
+breakdown_tempogram <- get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
+  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
+  ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  labs(title = "The Day That The World Breaks Down", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
+  theme_ayreon()
+
+breakdown_tempogram
+```
+
+```{r include=TRUE, echo=FALSE}
+grid.arrange(awareness_tempogram, osiris_tempogram, isolation_tempogram, shadows_tempogram, breakdown_tempogram)
+```
+
+***
+
+The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. These tracks are *not* always the first track of their respective albums, such as in the case of *Day Two: Isolation* from the album *The Human Equation*. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as their true introduction or exposition, with some first tracks serving as prologues. These prologue tracks are either very short or consist mostly of speech, while the introductory tracks are some of the longest on the albums, which is why I chose to look at them in particular. Only the album *Universal Migrator* has a prologue without an introductory track following it, due to its differing structure.
+
+What is particularly interesting here, is that despite the complex structure of these songs, they follow a nearly constant tempo as evidenced by the bright green horizontal line in each tempogram. The other horizontal lines, spaced out evenly across the vertical axis, are the result of tempo harmonics. I chose to leave them in, as they don't distract from the bigger picture.
+
+The "muddled" parts of some songs, especially *The Awareness* and *The Day That The World Breaks Down*, correspond to parts of the song with less of a clear rhythm. In both cases, most instruments that appear in other parts of the song are absent, and if there are lyrics, they flow slowly and irregularly.
