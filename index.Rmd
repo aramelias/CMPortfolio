@@ -6,7 +6,7 @@ output:
     storyboard: true
 ---
 
-```{r include=FALSE}
+```{r first, include=FALSE}
 knitr::opts_chunk$set(include = FALSE)
 knitr::opts_chunk$set(error = FALSE)
 library(tidyverse)
@@ -20,7 +20,7 @@ library(compmus)
 library(ranger)
 ```
 
-```{r}
+```{r custom_theme}
 # Creating a custom theme
 theme_ayreon = function(){
   theme_linedraw() %+replace%
@@ -30,7 +30,7 @@ theme_ayreon = function(){
 }
 ```
 
-```{r}
+```{r retrieval}
 # Retrieve data
 ayreon <- get_playlist_audio_features("", "3O1z9gRNz9DiB9wujbgLiV") %>% subset(track.album.name != "Timeline") %>%
     subset(select = -c(playlist_id, playlist_name, playlist_img, playlist_owner_name, playlist_owner_id,
@@ -55,7 +55,7 @@ ayreon$album = factor(ayreon$track.album.name, levels = albums)
 ayreon
 ```
 
-```{r}
+```{r confusion_functions}
 get_conf_mat <- function(fit) {
   fit %>% collect_predictions() %>%
     conf_mat(truth = .get_tune_outcome_names(fit), estimate = .pred_class)
@@ -73,19 +73,188 @@ get_pr <- function(fit) {
 
 ### Introduction and Corpus
 
-<!-- ![Logo](https://iconape.com/wp-content/files/gt/296369/svg/ayreon-logo-logo-icon-png-svg.png){width=50%} -->
+<div>
+![](https://iconape.com/wp-content/files/gt/296369/svg/ayreon-logo-logo-icon-png-svg.png){width=25%}
+</div>
 
-Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. Most human listeners should be able to notice differences right away, with newer albums being described as "richer" or more complex. Although the band *has* released other albums besides these six, those consist of shorter tracks and are not considered "canon" to the storyline the other albums follow. For these reasons, I have decided to only focus on the six "core" albums.
+Dutch progressive-metal band, *Ayreon*, has released six concept albums between 1995 and 2017. It may be worthwhile to compare these albums to one another to see how the band has developed over time, as while Ayreon's content is often described as having a unique, characteristic sound, it has not stayed the same. Most human listeners should be able to notice differences between these albums right away, with newer albums being described as "richer" or more complex. Although the band *has* released other albums besides these six, those consist of shorter tracks and are not considered "canon" to the storyline the other albums follow. For these reasons, I have decided to only focus on the six "core" albums. With most songs on these six albums being over five minutes in length and having distinct musical segments with complex rhythms, and each album consisting of about fifteen to twenty songs, a large amount of data on this band is available on Spotify.
 
-Some songs in different albums reference one another, and for these it could also be interesting to see how much they have in common musically speaking. Some other songs are considered outliers due to not sounding the same as the rest of the album, or even having more in common with other albums to the human ear.
+Some songs in different albums reference one another, and for these it could also be interesting to see how much they have in common musically speaking. Some other songs are considered outliers due to not sounding the same as the rest of the album, or even having more in common with other albums to the human ear. However, the focus of this portfolio is simply looking at differences and similarities between albums, and seeing if they can be reduced to any trends.
 
-With most songs being over five minutes in length and having distinct musical segments with complex rhythms, and each album consisting of about fifteen songs, a large amount of data on this band is available on Spotify. As stated before, tracks on more recent albums are generally seen as more complex, and it may be of interest to see if this complexity affects other features of their songs that can be traced back to a trend across albums.
+For future reference, the six albums that form the focus of this research are *The Final Experiment* (1995), *Into The Electric Castle* (1998), *Universal Migrator* (2000, consisting of two parts), *The Human Equation* (2004), *01011001* (2008), and *The Source* (2017). These are the "core" albums as they form a cohesive storyline together, each telling their own part of a science-fiction story in a rock-opera-esque format. Other albums, such as *Actual Fantasy* (1996), *The Theory of Everything* (2013) and *Transitus* (2020), which mostly stand on their own, are intentionally left out, as are other musical projects by some of the same people behind Ayreon.
 
-A limitation of this corpus would be a lack of other material to compare it with; however, with the band citing older bands such as Pink Floyd as inspiration, looking into similarities there might also be a good avenue for research.
+All of the band's discography can be found on both [Spotify](https://open.spotify.com/artist/2RSApl0SXcVT8Yiy4UaPSt?si=guJnFBkNTe-bt5n58GQlDA) and their [official YouTube channel](https://www.youtube.com/user/ArjenALucassen/playlists?view=1).
+
+### Over time, Ayreon's albums have become more consistent in terms of valence and energy.
+
+```{r energy_valence, include=TRUE, echo=FALSE}
+ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name, name = track.name)) +
+  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
+  scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
+  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
+  scale_size_continuous(trans = "exp", guide = "none") +
+  facet_wrap(~album) +
+  labs(title = "Energy and valence of Ayreon albums", caption = "Data source: Spotify",
+       x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
+  theme_ayreon(),
+  tooltip = c("name", "energy", "valence", "loudness", "mode_name")
+)
+```
+
+***
+
+This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, with each circle representing a track from the album in the title. The size of a circle represents the track's loudness and the color represents the mode.
+
+It clearly shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones. Most importantly, however, tracks have become more clustered in the lower-right region instead of being more spread-out.
+
+### The structure of Ayreon's songs has changed over time, becoming both simpler and more varied.
+
+```{r osiris_analysis}
+osiris <- 
+  get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>%
+  unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  ) %>%
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"
+      )
+  )
+```
+
+```{r breakdown_analysis}
+breakdown <- 
+  get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
+  compmus_align(bars, segments) %>%
+  select(bars) %>%
+  unnest(bars) %>%
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  ) %>%
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"
+      )
+  )
+```
+
+```{r ssm, include=TRUE, echo=FALSE}
+bind_rows(
+  mutate(compmus_self_similarity(osiris, pitches, "cosine"), type = "Chroma", song = "Isis And Osiris"),
+  mutate(compmus_self_similarity(osiris, timbre, "cosine"), type = "Timbre", song = "Isis And Osiris"),
+  mutate(compmus_self_similarity(breakdown, pitches, "cosine"), type = "Chroma", song = "The Day That..."),
+  mutate(compmus_self_similarity(breakdown, timbre, "cosine"), type = "Timbre", song = "The Day That..."),
+) %>%
+  mutate() %>% 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  facet_wrap(song~type) +
+  scale_fill_viridis_c(guide = "none") +
+  theme_ayreon() + 
+  labs(title = "Self-Similarity Matrices", x = "", y = "")
+```
+
+***
+
+While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can most clearly be seen in the eleven-minute track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear. To the left are two self-similarity matrices (SSMs) for this track, which compare each bar to all other bars in the song; one in terms of chroma (melody) features, the other in term of timbre (instrument) features. 
+
+The song's clear structure is in no small part due to the fact that some parts (such as the "chorus" parts of the different segments) are repeated almost identically, which shows as solid blue blocks in the SSM. This is clearly visible in the block-like structure, which also reveal that the first and last segments of the song are quite similar -- this is intentional, as at its *highest* level, the track follows an **ABCA** structure. Each **A**, **B** and **C** part can then be divided into subparts that repeat within the confines of that part. The timbre-based SSM shows that despite variations in melody, the song's timbre is highly consistent.
+
+Comparing this to *The Day that the World Breaks Down*, the first track of their newest album, *The Source*, it becomes clear that something has changed. There is a higher variation in both chroma and timbre, but the chroma structure also appears more regular, with a checkerboard-like pattern emerging in both SSMs for this song.
+
+### The previously mentioned change in structure also shows in other aspects.
+
+```{r compute_variations}
+variations <- data.frame(album = albums)
+
+for (album in albums) {
+  variations$sd_loud[variations$album == album] <- sd(ayreon$loudness[ayreon$track.album.name == album])
+  variations$sd_tempo[variations$album == album] <- sd(ayreon$tempo[ayreon$track.album.name == album])
+  variations$sd_duration[variations$album == album] <- sd(ayreon$track.duration_ms[ayreon$track.album.name == album])
+}
+
+variations
+```
+
+```{r plot_variations, include=TRUE, echo=FALSE}
+#ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album)) +
+#  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
+#  theme_ayreon()
+
+ggplotly(ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album_factor)) +
+  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
+  scale_x_continuous(limits = c(0, 4), breaks = c(0, 2, 4), minor_breaks = NULL) +
+  scale_y_continuous(limits = c(0, 30), breaks = c(0, 15, 30), minor_breaks = NULL) +
+  #scale_size_continuous(trans = "log", guide = "none") +
+  labs(title = "Variance in loudness, tempo and duration of Ayreon tracks", caption = "Data source: Spotify",
+       x = "Loudness", y = "Tempo", size = "Duration", fill = "Album") +
+  theme_ayreon(),
+  tooltip = c("album", "sd_loud", "sd_tempo", "sd_duration", "album")
+)
+```
+
+***
+
+This plot shows the variance (standard deviation) of three factors in Ayreon's different albums. The higher the value, the more these factors differ between songs on said album. The legend to the right lists the albums in chronological order, with *The Final Experiment* being the oldest album and *The Source* being the most recent.
+
+Surprisingly, one aspect in which the band's work has become *less* varied in newer albums, is loudness. This may have something to do with the fact that most of their newer songs also have more energy on average, as can be seen in the first visualization of this portfolio where tracks of newer albums are closer together on the horizontal axis. This would suggest a correlation between loudness and energy, which seems intuitive.
+
+### Ayreon's songs may have complex structures made up of multiple parts, but the tempo of each song remains fairly constant.
+
+```{r combine_tempograms, include=TRUE, echo=FALSE}
+#grid.arrange(awareness_tempogram, osiris_tempogram, isolation_tempogram, shadows_tempogram, breakdown_tempogram)
+
+bind_rows(
+  mutate(tempogram(get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX"), window_size = 8, hop_size = 1, cyclic = FALSE), song = "The Awareness"),
+  mutate(tempogram(get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z"), window_size = 8, hop_size = 1, cyclic = FALSE), song = "Isis And Osiris"),
+  mutate(tempogram(get_tidy_audio_analysis("52n7yFo3u09rzhewJLMa54"), window_size = 8, hop_size = 1, cyclic = FALSE), song = "Day Two: Isolation"),
+  mutate(tempogram(get_tidy_audio_analysis("55Ywj4C9fUHoSqfWIdeBFd"), window_size = 8, hop_size = 1, cyclic = FALSE), song = "Age Of Shadows"),
+  mutate(tempogram(get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv"), window_size = 8, hop_size = 1, cyclic = FALSE), song = "The Day That...")
+) %>%
+  mutate() %>% 
+   ggplot(aes(x = time, y = bpm, fill = power)) +
+  geom_raster() +
+  scale_fill_viridis_c(guide = "none") +
+  facet_wrap(~song) +
+  theme_ayreon() + 
+  labs(title = "Tempograms", x = "Time (s)", y = "Tempo (BPM)")
+```
+
+***
+
+The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. These tracks are *not* always the first track of their respective albums, such as in the case of *Day Two: Isolation* from the album *The Human Equation*. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as their true introduction or exposition, with some first tracks serving as prologues. These prologue tracks are either very short or consist mostly of speech, while the introductory tracks are some of the longest on the albums, which is why I chose to look at them in particular. Only the album *Universal Migrator* has a prologue without an introductory track following it, due to its differing structure.
+
+What is particularly interesting here, is that despite the complex structure of these songs, they follow a nearly constant tempo as evidenced by the bright green horizontal line in each tempogram. The other horizontal lines, spaced out evenly across the vertical axis, are the result of tempo harmonics. I chose to leave them in, as they don't distract from the bigger picture.
+
+The "muddled" parts of some songs, especially *The Awareness* and *The Day That The World Breaks Down*, correspond to parts of the song with less of a clear rhythm. In both cases, most instruments that appear in other parts of the song are absent, and if there are lyrics, they flow slowly and irregularly.
 
 ### A random-forest classifier is surprisingly effective at classifying Ayreon's songs by album, with a few exceptions.
 
-```{r}
+```{r feature_extraction}
 ayreon_features <-
   ayreon %>%
   add_audio_analysis() %>% 
@@ -109,7 +278,7 @@ ayreon_features <-
   unnest(cols = c(pitches, timbre))
 ```
 
-```{r}
+```{r set_recipe}
 ayreon_recipe <-
   recipe(
     album ~
@@ -135,11 +304,11 @@ ayreon_recipe <-
   #step_range(all_predictors())    # Sets range to [0, 1].
 ```
 
-```{r}
+```{r cross_validation}
 ayreon_cv <- ayreon_features %>% vfold_cv(10)
 ```
 
-```{r}
+```{r knn}
 knn_model <-
   nearest_neighbor(neighbors = 5) %>%
   set_mode("classification") %>% 
@@ -155,7 +324,7 @@ ayreon_knn <-
   )
 ```
 
-```{r}
+```{r forest}
 forest_model <-
   rand_forest() %>%
   set_mode("classification") %>% 
@@ -171,7 +340,7 @@ ayreon_forest <-
   )
 ```
 
-```{r}
+```{r evaluate_models}
 ayreon_knn %>% get_conf_mat() %>% autoplot(type = "heatmap")
 ayreon_forest %>% get_conf_mat() %>% autoplot(type = "heatmap")
 ayreon_knn %>% get_conf_mat() %>% autoplot(type = "mosaic")
@@ -183,260 +352,60 @@ ayreon_forest %>% get_pr()
 pr_forest = get_pr(ayreon_forest)
 ```
 
-```{r include=TRUE, echo=FALSE}
-confusion_plot <- ayreon_forest %>% get_conf_mat() %>% autoplot(type = "heatmap")
-confusion_plot +
+```{r plot_conf_matrix, include=TRUE, echo=FALSE}
+ayreon_forest %>% get_conf_mat() %>% autoplot(type = "heatmap") +
   scale_fill_viridis_c() +
-  labs(title = "Random Forest Classifier", caption = "Data source: Spotify") +
+  labs(title = "Random Forest Classifier") +
   theme_ayreon() +
   theme(axis.text.x = element_text(angle = 90), legend.position = "none")
 ```
 
 ***
 
-A random forest classifier model was trained on the entire body of features, resulting in the confusion matrix shown here. The numerical values and their corresponding colors represent how many tracks from a specific album (on the horizontal axis) were classified as each album (on the vertical axis). The diagonal running from the top left to the bottom right therefore represents *correct* classifications. On average, the model showed a precision of `r round(mean(pr_forest$precision), 1)`% and a recall of `r round(mean(pr_forest$recall), 1)`%.
+A random-forest classifier model was trained on the entire body of features, resulting in the confusion matrix shown here. The numerical values and their corresponding colors represent how many tracks from a specific album (on the horizontal axis) were classified as each album (on the vertical axis). The diagonal running from the top left to the bottom right therefore represents *correct* classifications. On average, the model showed a precision of `r round(mean(pr_forest$precision) * 100, 1)`% and a recall of `r round(mean(pr_forest$recall) * 100, 1)`%. For a binary classification problem, this would have been no better than random chance, but a problem like this with six classes makes 50% a more promising amount.
 
 By disregarding the features of danceability, energy, loudness, liveness and duration, the model's performance was increased. In particular, roughly half the songs on *Into The Electric Castle* and the majority of songs on *Universal Migrator*, *The Human Equation* and *The Source* were labelled correctly, while the model performed far less effectively on *The Final Experiment* and *01011001*. Interestingly, the classifications for *The Final Experiment* were almost evenly distributed across albums, while tracks from *01011001* were most often misclassified as tracks from *Universal Migrator*.
 
 The fact that the confusion matrix also shows smooth color gradients on the vertical axis, suggests that consecutive albums have more in common with one another than albums with more time in between. The only real exception to this is *The Source*, whose low number of misclassifications on both the horizontal and vertical axis suggests that it is more distinct from the rest of Ayreon's work.
 
-### Over time, Ayreon's albums have become more consistent in terms of valence and energy.
+### Certain features contributed the most to classifications.
 
-```{r include=TRUE, echo=FALSE}
-ggplotly(ggplot(ayreon, aes(x = energy, y = valence, size = loudness, fill = mode_name, name = track.name)) +
-  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
-  scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
-  scale_y_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1), minor_breaks = NULL) +
-  scale_size_continuous(trans = "exp", guide = "none") +
-  facet_wrap(~album) +
-  labs(title = "Energy and valence of Ayreon albums", caption = "Data source: Spotify",
-       x = "Energy", y = "Valence", size = "Loudness", fill = "Mode") +
+```{r importance_plot, include=TRUE, echo=FALSE}
+workflow() %>% 
+  add_recipe(ayreon_recipe) %>% 
+  add_model(forest_model) %>% 
+  fit(ayreon_features) %>% 
+  pluck("fit", "fit", "fit") %>%
+  ranger::importance() %>% 
+  enframe() %>% 
+  mutate(name = fct_reorder(name, value)) %>% 
+  ggplot(aes(name, value)) + 
+  geom_col() + 
+  coord_flip() +
+  theme_ayreon() +
+  labs(x = NULL, y = "Importance", title = "Features Used by the Classifier")
+```
+
+***
+
+The random-forest classifier from the previous page used features, which are values computed by the Spotify API for each song that represent certain properties of those songs. This plot shows how much each of those features contributed to the decisions made by the classifier, showing us that **c04**, the fourth timbre coefficient, contributed the most, while **instrumentalness** contributed the second most. This does not mean that they are different for each album, as the importance assigned to these features can be incorrect, which would be one way of explaining the incorrect classifications.
+
+### The "most important" features show overlap, but do vary somewhat between albums. This can be connected to the confusion matrix.
+
+```{r feature_plot, include=TRUE, echo=FALSE}
+ggplotly(ggplot(ayreon_features, aes(x = c04, y = instrumentalness, fill = album, name = track.name)) +
+  geom_point(shape = 21, color = "#000000", alpha = 0.5, size = 3) +
+  scale_x_continuous(limits = c(-40, 10), breaks = c(-40, -30, -20, -10, 0, 10), minor_breaks = NULL) +
+  scale_y_log10() +
+  labs(title = "Values of Important Features",
+       x = "Timbre Coefficient 4 (c04)", y = "Instrumentalness", fill = "Album") +
   theme_ayreon(),
-  tooltip = c("name", "energy", "valence", "loudness", "mode_name")
+  tooltip = c("name", "c04", "instrumentalness", "album")
 )
 ```
 
 ***
 
-This plot is an overview of Ayreon's six albums, in chronological order. The valence and energy are plotted against each other on the axes, with each circle representing a track from the album in the title. The size of a circle represents the track's loudness and the color represents the mode.
+This interactive plot shows the distribution of the features that we previously determined had the greatest influence on the classifier's results. Each point represents a song, whose album is denoted by its color. The legend on the right shows the album names in chronological order of release.
 
-It clearly shows that, especially through time, the band has gravitated towards higher-energy tracks with low to medium valence, and tracks have also become louder on average. Major-mode tracks also tend to have a higher energy and valence, but this is more clearly visible in later albums than in earlier ones. Most importantly, however, tracks have become more clustered in the lower-right region instead of being more spread-out.
-
-### The structure of Ayreon's songs has changed over time, becoming both simpler and more varied.
-
-```{r}
-osiris <- 
-  get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
-  compmus_align(bars, segments) %>%
-  select(bars) %>%
-  unnest(bars) %>%
-  mutate(
-    pitches =
-      map(segments,
-        compmus_summarise, pitches,
-        method = "rms", norm = "euclidean"
-      )
-  ) %>%
-  mutate(
-    timbre =
-      map(segments,
-        compmus_summarise, timbre,
-        method = "rms", norm = "euclidean"
-      )
-  )
-```
-
-```{r}
-breakdown <- 
-  get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
-  compmus_align(bars, segments) %>%
-  select(bars) %>%
-  unnest(bars) %>%
-  mutate(
-    pitches =
-      map(segments,
-        compmus_summarise, pitches,
-        method = "rms", norm = "euclidean"
-      )
-  ) %>%
-  mutate(
-    timbre =
-      map(segments,
-        compmus_summarise, timbre,
-        method = "rms", norm = "euclidean"
-      )
-  )
-```
-
-```{r}
-osiris_plot <- bind_rows(
-  mutate(compmus_self_similarity(osiris, pitches, "cosine"), type = "Chroma"),
-  mutate(compmus_self_similarity(osiris, timbre, "cosine"), type = "Timbre"),
-) %>%
-  mutate() %>% 
-  ggplot(
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) +
-  geom_tile() +
-  coord_fixed() +
-  facet_wrap(~type) +
-  scale_fill_viridis_c(guide = "none") +
-  theme_ayreon() + 
-  labs(title = "Isis And Osiris", x = "", y = "", caption = "Data source: Spotify")
-
-osiris_plot
-```
-
-```{r}
-breakdown_plot <- bind_rows(
-  mutate(compmus_self_similarity(breakdown, pitches, "cosine"), type = "Chroma"),
-  mutate(compmus_self_similarity(breakdown, timbre, "cosine"), type = "Timbre"),
-) %>%
-  mutate() %>% 
-  ggplot(
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) +
-  geom_tile() +
-  coord_fixed() +
-  facet_wrap(~type) +
-  scale_fill_viridis_c(guide = "none") +
-  theme_ayreon() + 
-  labs(title = "The Day That The World Breaks Down", x = "", y = "", caption = "Data source: Spotify")
-
-breakdown_plot
-```
-
-```{r include=TRUE, echo=FALSE}
-grid.arrange(osiris_plot, breakdown_plot)
-```
-
-***
-
-While many of Ayreon's songs have distinct parts, most of these are repeated throughout the course of one song in some way, shape or form. This can most clearly be seen in the eleven-minute track *Isis And Osiris*, from their second album, *Into The Electric Castle*. This song was chosen based on the fact that many listeners agree it to be most representative of their work, and because its structure is immediately noticeable to the human ear. To the left are two self-similarity matrices (SSMs) for this track, which compare each bar to all other bars in the song; one in terms of chroma (melody) features, the other in term of timbre (instrument) features. 
-
-The song's clear structure is in no small part due to the fact that some parts (such as the "chorus" parts of the different segments) are repeated almost identically, which shows as solid blue blocks in the SSM. This is clearly visible in the block-like structure, which also reveal that the first and last segments of the song are quite similar -- this is intentional, as at its *highest* level, the track follows an **ABCA** structure. Each **A**, **B** and **C** part can then be divided into subparts that repeat within the confines of that part. The timbre-based SSM shows that despite variations in melody, the song's timbre is highly consistent.
-
-Comparing this to *The Day that the World Breaks Down*, the first track of their newest album, *The Source*, it becomes clear that something has changed. There is a higher variation in both chroma and timbre, but the chroma structure also appears more regular, with a checkerboard-like pattern emerging in both SSMs for this song.
-
-### The previously mentioned change in structure also shows in other aspects.
-
-```{r}
-variations <- data.frame(album = albums)
-
-for (album in albums) {
-  variations$sd_loud[variations$album == album] <- sd(ayreon$loudness[ayreon$track.album.name == album])
-  variations$sd_tempo[variations$album == album] <- sd(ayreon$tempo[ayreon$track.album.name == album])
-  variations$sd_duration[variations$album == album] <- sd(ayreon$track.duration_ms[ayreon$track.album.name == album])
-}
-
-variations
-```
-
-```{r include=TRUE, echo=FALSE}
-#ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album)) +
-#  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
-#  theme_ayreon()
-
-ggplotly(ggplot(variations, aes(x = sd_loud, y = sd_tempo, size = sd_duration, fill = album_factor)) +
-  geom_point(shape = 21, color = "#000000", alpha = 0.5) +
-  scale_x_continuous(limits = c(0, 4), breaks = c(0, 2, 4), minor_breaks = NULL) +
-  scale_y_continuous(limits = c(0, 30), breaks = c(0, 15, 30), minor_breaks = NULL) +
-  #scale_size_continuous(trans = "log", guide = "none") +
-  labs(title = "Variance in loudness, tempo and duration of Ayreon tracks", caption = "Data source: Spotify",
-       x = "Loudness", y = "Tempo", size = "Duration", fill = "Album") +
-  theme_ayreon(),
-  tooltip = c("album", "sd_loud", "sd_tempo", "sd_duration")
-)
-```
-
-***
-
-This plot shows the variance (standard deviation) of three factors in Ayreon's different albums. The higher the value, the more these factors differ between songs on said album. The legend to the right lists the albums in chronological order, with *The Final Experiment* being the oldest album and *The Source* being the most recent.
-
-Surprisingly, one aspect in which the band's work has become *less* varied in newer albums, is loudness. This may have something to do with the fact that most of their newer songs also have more energy on average, as can be seen in the first visualization of this portfolio where tracks of newer albums are closer together on the horizontal axis. This would suggest a correlation between loudness and energy, which seems intuitive.
-
-### Ayreon's songs may have complex structures made up of multiple parts, but the tempo of each song remains fairly constant.
-
-```{r}
-awareness_tempogram <- get_tidy_audio_analysis("6lJ4zPLT1K1c5BNhY86fjX") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "The Awareness", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-awareness_tempogram
-```
-
-```{r}
-osiris_tempogram <- get_tidy_audio_analysis("39VbILtU4hPAb7zDxdiU4z") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "Isis And Osiris", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-osiris_tempogram
-```
-
-```{r}
-isolation_tempogram <- get_tidy_audio_analysis("52n7yFo3u09rzhewJLMa54") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "Day Two: Isolation", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-isolation_tempogram
-```
-
-```{r}
-shadows_tempogram <- get_tidy_audio_analysis("55Ywj4C9fUHoSqfWIdeBFd") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "Age Of Shadows/We Are Forever", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-shadows_tempogram
-```
-
-```{r}
-breakdown_tempogram <- get_tidy_audio_analysis("2bDcXeWeQGULkJEuDpB7wv") %>%
-  tempogram(window_size = 8, hop_size = 1, cyclic = FALSE) %>%
-  ggplot(aes(x = time, y = bpm, fill = power)) +
-  geom_raster() +
-  scale_fill_viridis_c(guide = "none") +
-  labs(title = "The Day That The World Breaks Down", x = "Time (s)", y = "Tempo (BPM)", caption = "Data source: Spotify") +
-  theme_ayreon()
-
-breakdown_tempogram
-```
-
-```{r include=TRUE, echo=FALSE}
-grid.arrange(awareness_tempogram, osiris_tempogram, isolation_tempogram, shadows_tempogram, breakdown_tempogram)
-```
-
-***
-
-The introductory tracks of Ayreon's albums often give a good representation of what the rest of the album will sound like in terms of mood, tempo and instrumentation. These tracks are *not* always the first track of their respective albums, such as in the case of *Day Two: Isolation* from the album *The Human Equation*. This is because every album follows a storyline, with the singers being characters in said story. The introductory tracks then function as their true introduction or exposition, with some first tracks serving as prologues. These prologue tracks are either very short or consist mostly of speech, while the introductory tracks are some of the longest on the albums, which is why I chose to look at them in particular. Only the album *Universal Migrator* has a prologue without an introductory track following it, due to its differing structure.
-
-What is particularly interesting here, is that despite the complex structure of these songs, they follow a nearly constant tempo as evidenced by the bright green horizontal line in each tempogram. The other horizontal lines, spaced out evenly across the vertical axis, are the result of tempo harmonics. I chose to leave them in, as they don't distract from the bigger picture.
-
-The "muddled" parts of some songs, especially *The Awareness* and *The Day That The World Breaks Down*, correspond to parts of the song with less of a clear rhythm. In both cases, most instruments that appear in other parts of the song are absent, and if there are lyrics, they flow slowly and irregularly.
+From this, we can conclude that certain albums -- particularly *The Source* (pink) and *Universal Migrator* (green) -- are more "concentrated" in a specific area of the so-called feature space. This would explain their high number of correct classifications, as they overlap the least with other albums and have the most distinctive distributions. *The Final Experiment* (red) and *01011001* (dark blue), on the other hand, are much more distributed across the vertical axis, which would explain why the classifier has the most trouble assigning the correct album label to their songs. *01011001* (dark blue) also shows a great overlap with *Universal Migrator* (green), which would explain the high amount of confusion between both albums.
